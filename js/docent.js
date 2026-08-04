@@ -181,6 +181,10 @@
     window.speechSynthesis.cancel();
     utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = BCP47[lang] || 'ko-KR';
+    // Slightly slower than default reduces the choppy, rushed feel of
+    // browser TTS without sounding unnaturally slow.
+    utterance.rate = 0.92;
+    utterance.pitch = 1.0;
 
     var voices = window.speechSynthesis.getVoices();
     var match = null;
