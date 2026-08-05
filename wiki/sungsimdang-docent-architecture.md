@@ -39,7 +39,13 @@ js/docent.js         shared logic for all floor pages (see below)
 data/floor3.json      per-floor content: title + content, keyed by language
 data/floor4.json
 data/floor5.json
+assets/sungsimdang-logo.png  brand wordmark, shown at the top of every floor
+                              page via the `.brand-logo` CSS class
 ```
+
+Brand/logo assets pulled from design-team source files often have a solid
+white background baked in (no alpha channel) — see GOTCHAS.md before adding
+another one, since this page's background is cream (`#f7f5f1`), not white.
 
 ## `docent.js` responsibilities
 

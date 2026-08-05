@@ -1,14 +1,14 @@
 # STATUS
 
-_Last updated: 2026-08-05_
+_Last updated: 2026-08-06_
 
 ## Current state
 
 **Live and working.** Deployed to GitHub Pages, verified by the user
-scanning QR codes on their own phone. Latest change: audio controls moved
-above the title/content on all floor pages, and the leading "오프닝/Opening"
-label removed from all 6 languages of floor3's content — pushed and
-confirmed live (commit `928dce0`).
+scanning QR codes on their own phone. Latest changes: added the Sungsimdang
+wordmark logo to the top of all three floor pages (commit `c8e9b45`), and
+removed the founders' baptismal names from the floor5 founder mention
+across all 6 languages (commit `f889e6f`). Both pushed and deployed.
 
 - Repo: https://github.com/SoLe-Korea/sungsimdang-70th-docent (public)
 - Live site: https://sole-korea.github.io/sungsimdang-70th-docent/
@@ -32,6 +32,10 @@ confirmed live (commit `928dce0`).
 - [x] Audio play/stop buttons moved above title/content (all 3 floor pages)
 - [x] Removed leading "오프닝"/"Opening"/etc. label from floor3 content
       (all 6 languages)
+- [x] Sungsimdang wordmark logo added to top of all 3 floor pages
+      (`assets/sungsimdang-logo.png`, background stripped transparent)
+- [x] Removed founders' baptismal/confirmation names from floor5 founder
+      mention (all 6 languages)
 
 ## Explicitly not doing (for now)
 

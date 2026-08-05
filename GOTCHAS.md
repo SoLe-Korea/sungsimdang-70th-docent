@@ -39,3 +39,23 @@ directly (bypasses device/browser cache) to check server-side truth first.
 If the server is correct but the user still sees old content, it's a
 client cache — have them hard-refresh or open the link in a private/
 incognito tab rather than debugging the deploy pipeline.
+
+## Design-team source PNGs often have no alpha channel
+
+Logo/character PNGs pulled from `~/Desktop/성심당로고-케릭터/` are mostly
+plain RGB with a solid white background baked in, not RGBA — `sips -g
+hasAlpha <file>.png` returns `no` for most of them. Dropping one straight
+into a page with a non-white background (this site's `--color-bg: #f7f5f1`
+cream, not `#fff`) shows an ugly white box.
+
+**Fix:** strip the white background to transparent before use:
+
+```python
+from PIL import Image
+im = Image.open("source.png").convert("RGBA")
+im.putdata([(r,g,b,0) if r>245 and g>245 and b>245 else (r,g,b,a) for r,g,b,a in im.getdata()])
+im.save("assets/output.png")
+```
+
+Check `sips -g hasAlpha` on candidate files first — a few in that folder
+(e.g. `무제-3-03.png`) already have real alpha and don't need this.
