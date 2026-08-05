@@ -6,8 +6,9 @@ https://sole-korea.github.io/sungsimdang-70th-docent/.
 ## Redeploying after a content or code change
 
 1. Edit whatever changed (usually `data/floor3.json`, `data/floor4.json`, or
-   `data/floor5.json` for manuscript/translation edits — html/css/js should
-   rarely need touching).
+   `data/floor5.json` for manuscript/translation edits; layout/structure
+   changes, like moving the audio controls, touch `floor{3,4,5}/index.html`
+   instead — keep all three floor HTML files identical to each other).
 2. Validate JSON before committing:
    ```
    python3 -c "import json; json.load(open('data/floor3.json'))"
@@ -25,11 +26,15 @@ https://sole-korea.github.io/sungsimdang-70th-docent/.
    ```
    (name the variable anything but `status` — see GOTCHAS.md)
    Wait for `"built"`, usually 30-90s.
-5. Verify live:
+5. Verify live — check the server, not your own phone/browser first:
    ```
    curl -s -o /dev/null -w "%{http_code}\n" https://sole-korea.github.io/sungsimdang-70th-docent/floor3/
+   curl -s https://sole-korea.github.io/sungsimdang-70th-docent/data/floor3.json
    ```
-   Expect `200`.
+   Expect `200` and the JSON to show the change. If the user reports the
+   live page still looks old after this passes, it's client-side caching
+   (see GOTCHAS.md) — have them hard-refresh or use a private/incognito tab
+   before assuming the deploy failed.
 
 ## First-time setup (already done, for reference)
 

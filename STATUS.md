@@ -5,7 +5,10 @@ _Last updated: 2026-08-05_
 ## Current state
 
 **Live and working.** Deployed to GitHub Pages, verified by the user
-scanning QR codes on their own phone.
+scanning QR codes on their own phone. Latest change: audio controls moved
+above the title/content on all floor pages, and the leading "오프닝/Opening"
+label removed from all 6 languages of floor3's content — pushed and
+confirmed live (commit `928dce0`).
 
 - Repo: https://github.com/SoLe-Korea/sungsimdang-70th-docent (public)
 - Live site: https://sole-korea.github.io/sungsimdang-70th-docent/
@@ -26,6 +29,9 @@ scanning QR codes on their own phone.
 - [x] Deployed to GitHub Pages, verified live (curl + user's own phone scan)
 - [x] QR codes generated and saved to `~/Desktop/문화원/QR코드/`
 - [x] TTS playback rate tuned for a slightly more natural feel
+- [x] Audio play/stop buttons moved above title/content (all 3 floor pages)
+- [x] Removed leading "오프닝"/"Opening"/etc. label from floor3 content
+      (all 6 languages)
 
 ## Explicitly not doing (for now)
 
@@ -40,3 +46,11 @@ scanning QR codes on their own phone.
 - If the user later wants natural AI voice, the `audioUrl` extension point
   in `docent.js`/JSON is already in place — see
   `wiki/sungsimdang-docent-architecture.md`.
+
+## Open question (undecided)
+
+- User raised removing the personal GitHub account name (`sole-korea`) from
+  the customer-facing URL. Two options on the table: free GitHub
+  Organization transfer vs. a paid custom domain. **Either one changes the
+  live URL and invalidates the already-printed QR codes** — reprinting
+  would be required. No decision made yet; ask before acting.

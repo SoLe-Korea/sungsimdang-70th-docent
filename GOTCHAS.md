@@ -22,3 +22,20 @@ textutil -convert txt -stdout "/path/to/file.docx"
 
 Used this to pull the docent narration manuscripts out of the `.docx` files
 on the Desktop for this project.
+
+## "It's not deployed" is often just client-side cache
+
+After pushing a content/layout fix and confirming the GitHub Pages build
+succeeded, the user reported the live QR-linked page still showed the old
+content. The deployed files were actually correct — confirmed by curling
+both the raw JSON (`data/floor3.json`) and the rendered HTML directly from
+`sole-korea.github.io`. The page's `data/*.json` responses carry
+`cache-control: max-age=600`, and mobile Safari/Chrome cache aggressively on
+top of that, so a phone that already visited the page can show stale
+content for a while after a real deploy.
+
+**Fix:** before concluding a deploy didn't take effect, `curl` the live URL
+directly (bypasses device/browser cache) to check server-side truth first.
+If the server is correct but the user still sees old content, it's a
+client cache — have them hard-refresh or open the link in a private/
+incognito tab rather than debugging the deploy pipeline.

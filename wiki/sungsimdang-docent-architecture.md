@@ -66,6 +66,12 @@ only `data/floor{3,4,5}.json`. Each floor's JSON has `title` and `content`
 objects keyed by `ko`/`en`/`zh`/`ja`/`es`/`vi`. Adding a language means
 adding a new key to every floor's JSON; no code changes.
 
+Layout/structure changes (e.g. reordering the audio controls above the
+title, done 2026-08-05) are the exception — those touch
+`floor{3,4,5}/index.html` directly. The three floor HTML files are meant to
+stay byte-identical to each other apart from `<body data-floor>` and
+`<title>`, so any structural edit should be applied to all three.
+
 ## Known limitation
 
 Browser `speechSynthesis` voices are noticeably robotic compared to AI TTS,
