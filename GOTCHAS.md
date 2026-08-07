@@ -59,3 +59,27 @@ im.save("assets/output.png")
 
 Check `sips -g hasAlpha` on candidate files first — a few in that folder
 (e.g. `무제-3-03.png`) already have real alpha and don't need this.
+
+## Android TTS silently fails for languages without installed voice data
+
+`speechSynthesis.getVoices()` on Android will *list* a language as
+available even when its actual voice data was never downloaded to the
+device. Calling `speak()` for that language then does nothing at all — no
+`onerror`, no `onstart`, no sound, no exception. A real Galaxy phone
+reproduced this identically in both Samsung Internet and Chrome: Korean and
+Chinese spoke fine (voice data present), English/Japanese/Spanish/
+Vietnamese produced total silence.
+
+This is a device-level limitation, not a bug reachable from JS — no amount
+of `cancel()`/`speak()` sequencing, voice-matching, or `localService`
+preference fixes it, because the voice data genuinely isn't on the device.
+A watchdog timer (missing `onstart` within ~1.5s ⇒ treat as failed) can at
+least *detect* and report the failure instead of staying silent, but can't
+make it work.
+
+**Fix:** don't rely on live `speechSynthesis` for content that must work on
+arbitrary/untestable visitor devices. Pre-record narration once (e.g. with
+free `edge-tts`, see `runbooks/deploy.md`) and ship it as static audio
+files — playback becomes a plain `<audio>` element, identical on every
+device. Keep `speechSynthesis` only as a fallback for content that doesn't
+have pre-recorded audio yet.

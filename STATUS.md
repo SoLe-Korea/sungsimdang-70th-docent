@@ -1,14 +1,14 @@
 # STATUS
 
-_Last updated: 2026-08-06_
+_Last updated: 2026-08-07_
 
 ## Current state
 
-**Live and working.** Deployed to GitHub Pages, verified by the user
-scanning QR codes on their own phone. Latest changes: added the Sungsimdang
-wordmark logo to the top of all three floor pages (commit `c8e9b45`), and
-removed the founders' baptismal names from the floor5 founder mention
-across all 6 languages (commit `f889e6f`). Both pushed and deployed.
+**Live and working.** Deployed to GitHub Pages. Latest changes: switched
+voice narration from live browser TTS to pre-recorded mp3 audio after a
+real Galaxy device showed live TTS silently failing for 4 of 6 languages
+(commits `f69c317`, `081ecd9`) — see `GOTCHAS.md` and `DECISIONS.md`
+(2026-08-07).
 
 - Repo: https://github.com/SoLe-Korea/sungsimdang-70th-docent (public)
 - Live site: https://sole-korea.github.io/sungsimdang-70th-docent/
@@ -17,7 +17,9 @@ across all 6 languages (commit `f889e6f`). Both pushed and deployed.
   (`3층_QR.png`, `4층_QR.png`, `5층_QR.png`), pointing at the floor URLs above.
 - Content: real docent manuscript (Korean original + ko/en/zh/ja/es/vi
   translations) in `data/floor3.json`, `data/floor4.json`, `data/floor5.json`.
-- Voice: browser Web Speech API, rate tuned to 0.92 for a less rushed feel.
+- Voice: pre-recorded mp3 narration (`audio/floor{3,4,5}-{lang}.mp3`, 18
+  files, generated with `edge-tts`), wired via each floor JSON's `audioUrl`.
+  Live `speechSynthesis` (rate 0.92) remains as a fallback only.
 
 ## What's done
 
@@ -36,20 +38,22 @@ across all 6 languages (commit `f889e6f`). Both pushed and deployed.
       (`assets/sungsimdang-logo.png`, background stripped transparent)
 - [x] Removed founders' baptismal/confirmation names from floor5 founder
       mention (all 6 languages)
-
-## Explicitly not doing (for now)
-
-- **AI/neural voice pre-recording** — evaluated, user declined after trying
-  the free rate tweak. See project memory `dont-push-paid-upgrades-unprompted`
-  — don't re-raise this unprompted.
+- [x] Diagnosed and mitigated Android `speechSynthesis` reliability
+      (local-voice preference, race-condition delay, silent-failure
+      watchdog, in-app-browser detection) — helped, but didn't fully fix
+      Galaxy devices missing voice data for some languages
+- [x] Generated pre-recorded mp3 narration (edge-tts, free) for all 3
+      floors × 6 languages and wired via `audioUrl` — this is now the
+      primary voice path, `speechSynthesis` is fallback-only
 
 ## Next steps (only if asked)
 
 - If exhibition content changes, edit the relevant `data/floor{3,4,5}.json`
-  and follow `runbooks/deploy.md` to redeploy.
-- If the user later wants natural AI voice, the `audioUrl` extension point
-  in `docent.js`/JSON is already in place — see
-  `wiki/sungsimdang-docent-architecture.md`.
+  **and regenerate the matching audio file(s)** — see `runbooks/deploy.md`.
+  Editing the JSON text alone no longer updates what visitors hear.
+- User asked to be told if the narrator voices sound off (tone, or
+  mispronounced proper nouns like Sungsimdang/Daejeon/founder names) after
+  listening on the live site — awaiting that feedback, not yet confirmed.
 
 ## Open question (undecided)
 

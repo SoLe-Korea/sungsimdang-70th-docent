@@ -52,3 +52,30 @@ Cloud Console API-enablement page for the user.
 said the AI-voice work "isn't needed" — cancelled mid-setup. See memory
 `dont-push-paid-upgrades-unprompted`. The extension point remains in place
 if this is revisited later.
+
+## 2026-08-07 — Pre-recorded audio (edge-tts) replaces live speechSynthesis
+
+**Decision:** Generate real mp3 narration once for all 3 floors × 6
+languages using `edge-tts` (Microsoft neural voices, free, no API key, no
+signup) and serve them as static files via the `audioUrl` field
+`docent.js` already supported. Live `speechSynthesis` is kept only as a
+fallback for any language/floor missing an audio file.
+
+**Alternatives considered:** Kept trying to make live `speechSynthesis`
+reliable — preferring local over remote voices, delaying `speak()` after
+`cancel()` to dodge an Android race condition, a watchdog to detect and
+report silent failures, in-app-browser detection. All shipped and helped,
+but a real Galaxy device still produced total silence (no error at all) for
+English/Japanese/Spanish/Vietnamese in both Samsung Internet and Chrome —
+see `GOTCHAS.md`. Root cause was device-level (no TTS voice data installed
+for those languages), which no client-side JS can detect or route around,
+and visitor devices can't be pre-vetted.
+
+**Why:** This supersedes the 2026-08-05 decision to use live
+`speechSynthesis` and decline pre-recorded voice — that decision assumed
+the paid Google Cloud/Azure TTS route (correctly declined, see memory
+`dont-push-paid-upgrades-unprompted`). `edge-tts` reaches the same
+pre-recorded-audio architecture at zero cost, so it isn't a re-litigation
+of the declined paid option — it's a free path to the same already-built
+`audioUrl` extension point, adopted once live TTS was confirmed unreliable
+on real hardware rather than just in theory.

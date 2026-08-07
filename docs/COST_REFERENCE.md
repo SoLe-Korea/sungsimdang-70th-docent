@@ -5,24 +5,20 @@
 - Hosting: GitHub Pages (free, public repo)
 - Data: static JSON in-repo, no database
 - Translation: pre-translated at authoring time, no runtime API calls
-- Voice: browser `speechSynthesis` (Web Speech API), no TTS API calls
+- Voice: pre-recorded mp3 narration (18 files, ~48MB total — 3 floors ×
+  6 languages), generated once with `edge-tts` (free, no API key, no
+  signup — see `DECISIONS.md`, 2026-08-07). Live browser `speechSynthesis`
+  remains only as a fallback, still zero-cost either way.
 - QR codes: generated once locally, printed — not served dynamically
 
 Nothing in the visitor-facing path scales with traffic, so cost stays $0
-regardless of how many people scan the QR codes.
+regardless of how many people scan the QR codes. GitHub Pages has no
+published hard storage cap for a repo this size (48MB of audio + assets is
+well within normal use); revisit only if many more floors/languages get
+added and total audio size grows substantially.
 
-## If AI/neural voice is adopted later
+## Regenerating audio
 
-Only relevant if the declined upgrade (see `DECISIONS.md`, 2026-08-05) is
-revisited.
-
-- One-time generation, not per-visit: pre-record mp3s once for all 3 floors
-  × 6 languages (~68,000 characters total across all languages), then serve
-  them as static files via the `audioUrl` field already supported in
-  `docent.js`.
-- Google Cloud TTS free tier (4M chars/month standard, 1M chars/month
-  WaveNet neural) or Azure TTS free tier (500K chars/month neural) both
-  comfortably cover this in a single generation pass — expected cost is
-  still $0, just requires the user to create their own account and API key.
-- Ongoing cost stays $0 after generation — the mp3s are static files, same
-  as everything else in this project.
+Free, one-time generation cost (compute time only, no API billing) — see
+`runbooks/deploy.md` for the `edge-tts` command. Re-run only when narration
+text in `data/floor{3,4,5}.json` changes.
