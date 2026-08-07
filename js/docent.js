@@ -11,16 +11,17 @@
  *   "content": { "ko": "...", "en": "...", "zh": "...", "ja": "...", "es": "...", "vi": "..." }
  * }
  *
- * OPTIONAL extensibility field (NOT present in the shipped data files):
- *   "audioUrl": { "ko": "audio/floor1-ko.mp3", "en": "audio/floor1-en.mp3", ... }
+ * OPTIONAL extensibility field:
+ *   "audioUrl": { "ko": "../audio/floor3-ko.mp3", "en": "../audio/floor3-en.mp3", ... }
  * This is a top-level object parallel to "title"/"content", keyed by the same
- * language codes. If data.audioUrl[lang] exists for the selected language,
- * playback uses an <audio> element pointed at that URL. If it is absent
- * (the default / current state of all shipped data files), playback falls
- * back to window.speechSynthesis reading data.content[lang] aloud. Either
- * way the same play/pause/stop UI controls whichever mechanism is active.
- * This lets exhibition text (and later, real narration audio) be updated
- * purely by editing the JSON files -- no HTML/CSS/JS changes required.
+ * language codes. All shipped data files (floor3/4/5) set this, pointing at
+ * pre-recorded mp3 narration in /audio (generated with edge-tts -- see
+ * runbooks/deploy.md). If data.audioUrl[lang] exists for the selected
+ * language, playback uses an <audio> element pointed at that URL. If it is
+ * absent, playback falls back to window.speechSynthesis reading
+ * data.content[lang] aloud instead. Either way the same play/pause/stop UI
+ * controls whichever mechanism is active. The fallback exists so content
+ * added without matching audio (or a future floor) still works.
  */
 (function () {
   'use strict';

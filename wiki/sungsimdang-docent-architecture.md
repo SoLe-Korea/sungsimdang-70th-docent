@@ -18,8 +18,11 @@ translation, and voice are all resolved without a server or a paid service:
 - **Translation**: pre-translated at authoring time (by Claude, from the
   Korean docent manuscript) and stored as static text, not fetched from a
   translation API at runtime.
-- **Voice**: the browser's own `speechSynthesis` (Web Speech API). No TTS
-  API call, no per-character cost, works offline once the page is cached.
+- **Voice**: pre-recorded mp3 narration (`audio/floor{3,4,5}-{lang}.mp3`),
+  generated once at authoring time with `edge-tts` (free, no API key --
+  see `runbooks/deploy.md`) and served as static files, same cost profile
+  as the JSON/images. Falls back to the browser's own `speechSynthesis`
+  (Web Speech API) if a file is ever missing for a language.
 - **QR codes**: generated once (Python `qrcode`, see `runbooks/deploy.md`)
   and printed. They're static images pointing at fixed URLs — not generated
   per-visit.
@@ -36,9 +39,10 @@ floor4/index.html    <body data-floor="N"> and <title>
 floor5/index.html
 css/style.css        shared, mobile-first
 js/docent.js         shared logic for all floor pages (see below)
-data/floor3.json      per-floor content: title + content, keyed by language
+data/floor3.json      per-floor content: title + content + audioUrl, keyed by language
 data/floor4.json
 data/floor5.json
+audio/floor{3,4,5}-{ko,en,zh,ja,es,vi}.mp3  pre-recorded narration, 18 files
 assets/sungsimdang-logo.png  brand wordmark, shown at the top of every floor
                               page via the `.brand-logo` CSS class
 ```
@@ -57,13 +61,12 @@ another one, since this page's background is cream (`#f7f5f1`), not white.
 3. Renders `title`/`content` for the selected language as plain text
    (`textContent`) — the content container has `white-space: pre-line` in
    CSS so `\n`/`\n\n` in the JSON produces real line/paragraph breaks.
-4. Voice playback: if `content[lang].audioUrl` exists, plays that file via
-   `<audio>`. Otherwise falls back to `speechSynthesis` with a
-   `SpeechSynthesisUtterance` (rate 0.92, matched to the closest available
-   voice for that BCP-47 language code). This `audioUrl` field is the
-   deliberate extension point for pre-recorded AI voice later — dropping an
-   mp3 URL into the JSON is enough, no JS/HTML changes needed. Not currently
-   used; the user evaluated it and declined for now.
+4. Voice playback: if `audioUrl[lang]` exists (it does, for every floor and
+   language as of 2026-08-07), plays that pre-recorded mp3 via `<audio>`.
+   Otherwise falls back to `speechSynthesis` with a `SpeechSynthesisUtterance`
+   (rate 0.92, matched to the closest available voice for that BCP-47
+   language code, preferring local over remote voices). Same play/pause/stop
+   UI drives whichever mechanism is active.
 
 ## Content maintenance model
 
@@ -78,22 +81,34 @@ title, done 2026-08-05) are the exception — those touch
 stay byte-identical to each other apart from `<body data-floor>` and
 `<title>`, so any structural edit should be applied to all three.
 
-## Known limitation
+## Why pre-recorded audio replaced live speechSynthesis (2026-08-07)
 
-Browser `speechSynthesis` voices are noticeably robotic compared to AI TTS,
-and quality varies a lot by device/OS voice pack. This is the tradeoff for
-staying at zero cost. The `audioUrl` extension point exists specifically so
-this can be upgraded later (pre-generate mp3s once via a free-tier neural
-TTS API, since it's a one-time generation cost, not a per-visitor one)
-without any architecture change.
+The site originally spoke `content[lang]` aloud at visit time via the
+browser's `speechSynthesis` (Web Speech API) -- free, but it turned out
+unreliable across Android devices in a way no client-side code could fully
+fix: a real Galaxy phone played Korean and Chinese fine but produced
+*complete silence, with no error of any kind*, for English/Japanese/
+Spanish/Vietnamese, reproducing identically in both Samsung Internet and
+Chrome. Investigation (see the two rounds of `docent.js` mitigation before
+this one, still visible in git history) narrowed it to a device-level
+limitation JS cannot detect or route around: Android's TTS engine only
+speaks languages whose voice data is actually downloaded on that specific
+device, and `getVoices()` will happily *list* a language as available even
+when the data isn't there -- `speak()` for it then does nothing, silently.
+Since exhibition visitors' phones are arbitrary and untestable in advance,
+no on-device Settings fix could be relied on.
 
-iOS Safari ships every language voice built into the OS (AVSpeechSynthesizer),
-so it always works. Android's TTS engine only has voices actually downloaded
-on that device -- and critically, `getVoices()` often *lists* a language as
-supported even when its voice data was never downloaded, so `speak()` for
-that language fails completely silently (no error event, no sound). Fixed
-2026-08-07 in `docent.js`: a short watchdog timer after `speak()` treats a
-missing `onstart` as a failure and surfaces an actionable notice (install
-the language pack via Android Settings, or open outside a messenger in-app
-browser -- KakaoTalk/Naver in-app WebViews frequently don't implement Web
-Speech API at all, detected via user-agent sniffing).
+The fix: generate real narration once, at authoring time, with `edge-tts`
+(Microsoft's neural voices, free, no API key, no signup -- see
+`runbooks/deploy.md` for the regeneration command) and ship the mp3s as
+static files. This keeps the zero-recurring-cost constraint intact --
+generation is a one-time build step, not a per-visitor API call -- while
+making playback identical on every device, since it's just an `<audio>`
+element rather than a device-dependent OS engine.
+
+`speechSynthesis` remains as the fallback path in `docent.js` (used only if
+`audioUrl[lang]` is ever missing, e.g. a future floor added without audio
+yet) with its earlier reliability work kept: local-voice preference, a
+delay between `cancel()`/`speak()` to dodge an Android race condition, a
+watchdog that surfaces a notice if playback never actually starts, and
+in-app-browser (KakaoTalk/Naver) detection.

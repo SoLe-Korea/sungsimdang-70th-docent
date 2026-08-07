@@ -49,6 +49,53 @@ https://sole-korea.github.io/sungsimdang-70th-docent/.
 - `.claude/`, `.omc/`, `.DS_Store` are gitignored — never commit local
   harness/tooling state to this public repo.
 
+## Regenerating narration audio
+
+Voice narration is pre-recorded mp3, not live browser TTS (see the wiki
+architecture doc for why). Regenerate it whenever `content` text changes in
+any `data/floor{3,4,5}.json`, or when adding a new floor.
+
+1. Install `edge-tts` if not already (free, no API key, no signup):
+   ```
+   pip3 install --user edge-tts
+   export PATH="$PATH:$(python3 -m site --user-base)/bin"
+   ```
+2. Generate mp3s for one language/floor or everything -- the script reads
+   `content[lang]` straight from the JSON, so edit the JSON first:
+   ```python
+   # scratch script, not committed -- adapt floor/lang args as needed
+   import asyncio, json, os, edge_tts
+
+   VOICES = {
+       "ko": "ko-KR-SunHiNeural", "en": "en-US-AriaNeural",
+       "zh": "zh-CN-XiaoxiaoNeural", "ja": "ja-JP-NanamiNeural",
+       "es": "es-ES-ElviraNeural", "vi": "vi-VN-HoaiMyNeural",
+   }
+   RATE = "-8%"
+
+   async def gen(floor, lang, text):
+       out = f"audio/{floor}-{lang}.mp3"
+       await edge_tts.Communicate(text, VOICES[lang], rate=RATE).save(out)
+       print(out, os.path.getsize(out), "bytes")
+
+   async def main():
+       data = json.load(open(f"data/floor3.json"))
+       await gen("floor3", "en", data["content"]["en"])
+
+   asyncio.run(main())
+   ```
+3. Confirm `data/floor{3,4,5}.json` has an `audioUrl` entry per language
+   pointing at `../audio/floor{N}-{lang}.mp3` (relative to `floor{N}/index.html`).
+   `docent.js` prefers `audioUrl` and only falls back to live
+   `speechSynthesis` if a language's entry is missing.
+4. Spot-check playback locally (`python3 -m http.server` from repo root,
+   open `floor{N}/index.html`) before committing -- listen for mispronounced
+   proper nouns (Sungsimdang, Daejeon, founder/staff names), since neural
+   TTS sometimes guesses wrong on names not in its training data.
+5. Commit the regenerated mp3s along with the JSON change and push per the
+   steps above. mp3s are binary and don't diff meaningfully in review --
+   sanity-check by file size and a listen, not by reading the diff.
+
 ## QR codes
 
 QR codes point directly at the floor URLs (not the root landing page) and
