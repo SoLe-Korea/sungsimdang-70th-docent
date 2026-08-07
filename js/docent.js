@@ -47,6 +47,22 @@
   };
 
   var VOICE_LIMITED_NOTICE = '이 기기에서는 음성 지원이 제한적일 수 있습니다.';
+  var VOICE_NO_MATCH_NOTICE =
+    '이 언어의 음성이 설치되어 있지 않습니다. (Android: 설정 > 일반 > 언어 및 입력 > ' +
+    '텍스트 음성 변환에서 언어를 추가해주세요)';
+  var VOICE_SILENT_FAIL_NOTICE =
+    '이 기기에서는 선택한 언어의 음성이 재생되지 않았습니다. ' +
+    '언어팩이 설치되어 있는지 확인하거나, 카카오톡 등 메신저 브라우저 대신 ' +
+    'Chrome/Safari로 열어 다시 시도해주세요.';
+  var INAPP_BROWSER_NOTICE =
+    '카카오톡/네이버 등 인앱 브라우저에서는 음성 기능이 제한될 수 있습니다. ' +
+    '우측 상단 메뉴에서 "다른 브라우저로 열기"를 선택해주세요.';
+  var TTS_START_TIMEOUT_MS = 1500;
+
+  function isInAppBrowser() {
+    var ua = navigator.userAgent || '';
+    return /KAKAOTALK|NAVER\(inapp|Instagram|FBAN|FBAV|Line\//i.test(ua);
+  }
 
   var floorNumber = document.body.getAttribute('data-floor') || '1';
 
@@ -81,6 +97,7 @@
   }
 
   function stopPlayback() {
+    clearTtsStartTimer();
     if ('speechSynthesis' in window) {
       window.speechSynthesis.cancel();
     }
@@ -144,8 +161,12 @@
   }
 
   function checkVoiceAvailability(lang) {
+    if (isInAppBrowser()) {
+      showVoiceNotice(true, INAPP_BROWSER_NOTICE);
+      return;
+    }
     if (!('speechSynthesis' in window)) {
-      showVoiceNotice(true);
+      showVoiceNotice(true, VOICE_LIMITED_NOTICE);
       return;
     }
     // If audioUrl is available for this language, speechSynthesis voice
@@ -164,63 +185,120 @@
     var hasMatch = voices.some(function (v) {
       return v.lang === target || v.lang.indexOf(lang) === 0;
     });
-    showVoiceNotice(!hasMatch);
+    showVoiceNotice(!hasMatch, VOICE_NO_MATCH_NOTICE);
   }
 
-  function showVoiceNotice(show) {
+  function showVoiceNotice(show, message) {
     if (!noticeEl) return;
-    noticeEl.textContent = VOICE_LIMITED_NOTICE;
+    noticeEl.textContent = message || VOICE_LIMITED_NOTICE;
     noticeEl.hidden = !show;
+  }
+
+  var ttsStartTimer = null;
+  var preSpeakTimer = null;
+
+  function clearTtsStartTimer() {
+    if (ttsStartTimer) {
+      clearTimeout(ttsStartTimer);
+      ttsStartTimer = null;
+    }
+    if (preSpeakTimer) {
+      clearTimeout(preSpeakTimer);
+      preSpeakTimer = null;
+    }
+  }
+
+  // Ranks candidate voices for a language and returns the best one.
+  // Local (on-device) voices are preferred over remote/network voices --
+  // remote voices need a live connection to synthesize speech and fail
+  // completely silently (no error, no sound) on a weak signal, which is a
+  // realistic condition inside the exhibition hall. Exact BCP-47 match beats
+  // a bare-language-code prefix match (Android/Samsung sometimes reports
+  // voice.lang with underscores, e.g. "en_US", so the prefix check is kept
+  // as a fallback for that too).
+  function findVoiceForLang(lang, target) {
+    var voices = window.speechSynthesis.getVoices();
+    var best = null;
+    var bestScore = -1;
+    for (var i = 0; i < voices.length; i++) {
+      var v = voices[i];
+      var isExact = v.lang === target;
+      var isPrefix = v.lang.indexOf(lang) === 0;
+      if (!isExact && !isPrefix) continue;
+      var score = (isExact ? 2 : 1) + (v.localService ? 2 : 0);
+      if (score > bestScore) {
+        bestScore = score;
+        best = v;
+      }
+    }
+    return best;
   }
 
   function speakContent(lang, text) {
     if (!('speechSynthesis' in window)) {
-      showVoiceNotice(true);
+      showVoiceNotice(true, VOICE_LIMITED_NOTICE);
       return;
     }
     window.speechSynthesis.cancel();
+    clearTtsStartTimer();
+
+    var targetLang = BCP47[lang] || 'ko-KR';
+    var match = findVoiceForLang(lang, targetLang);
+
+    // Android/Chrome has a known race condition where speak() called
+    // immediately after cancel() is silently dropped (the previous queue
+    // hasn't finished clearing yet). A short delay avoids it; it's
+    // imperceptible to the user.
+    preSpeakTimer = setTimeout(function () {
+      preSpeakTimer = null;
+      startUtterance(text, targetLang, match);
+    }, 50);
+  }
+
+  function startUtterance(text, targetLang, match) {
     utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = BCP47[lang] || 'ko-KR';
+    utterance.lang = targetLang;
     // Slightly slower than default reduces the choppy, rushed feel of
     // browser TTS without sounding unnaturally slow.
     utterance.rate = 0.92;
     utterance.pitch = 1.0;
-
-    var voices = window.speechSynthesis.getVoices();
-    var match = null;
-    for (var i = 0; i < voices.length; i++) {
-      if (voices[i].lang === utterance.lang) {
-        match = voices[i];
-        break;
-      }
-    }
-    if (!match) {
-      for (var j = 0; j < voices.length; j++) {
-        if (voices[j].lang.indexOf(lang) === 0) {
-          match = voices[j];
-          break;
-        }
-      }
-    }
     if (match) utterance.voice = match;
 
     utterance.onstart = function () {
+      clearTtsStartTimer();
       speaking = true;
       paused = false;
+      showVoiceNotice(false);
       updatePlaybackUI();
     };
     utterance.onend = function () {
+      clearTtsStartTimer();
       speaking = false;
       paused = false;
       updatePlaybackUI();
     };
     utterance.onerror = function () {
+      clearTtsStartTimer();
       speaking = false;
       paused = false;
+      showVoiceNotice(true, VOICE_SILENT_FAIL_NOTICE);
       updatePlaybackUI();
     };
 
     window.speechSynthesis.speak(utterance);
+
+    // Android TTS engines routinely list a language in getVoices() even when
+    // its voice data was never downloaded -- speak() then fails silently
+    // (no onerror, no onstart, no sound). Detect that by watching for
+    // onstart within a short window; if it never fires, treat as failed.
+    clearTtsStartTimer();
+    ttsStartTimer = setTimeout(function () {
+      ttsStartTimer = null;
+      if (!speaking) {
+        window.speechSynthesis.cancel();
+        showVoiceNotice(true, VOICE_SILENT_FAIL_NOTICE);
+      }
+    }, TTS_START_TIMEOUT_MS);
   }
 
   function handlePlayPause() {

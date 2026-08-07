@@ -86,3 +86,14 @@ staying at zero cost. The `audioUrl` extension point exists specifically so
 this can be upgraded later (pre-generate mp3s once via a free-tier neural
 TTS API, since it's a one-time generation cost, not a per-visitor one)
 without any architecture change.
+
+iOS Safari ships every language voice built into the OS (AVSpeechSynthesizer),
+so it always works. Android's TTS engine only has voices actually downloaded
+on that device -- and critically, `getVoices()` often *lists* a language as
+supported even when its voice data was never downloaded, so `speak()` for
+that language fails completely silently (no error event, no sound). Fixed
+2026-08-07 in `docent.js`: a short watchdog timer after `speak()` treats a
+missing `onstart` as a failure and surfaces an actionable notice (install
+the language pack via Android Settings, or open outside a messenger in-app
+browser -- KakaoTalk/Naver in-app WebViews frequently don't implement Web
+Speech API at all, detected via user-agent sniffing).
